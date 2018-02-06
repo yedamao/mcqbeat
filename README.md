@@ -1,5 +1,7 @@
 # Mcqbeat
 
+[![Releases](https://img.shields.io/github/release/yedamao/mcqbeat/all.svg?style=flat-square)](https://github.com/yedamao/mcqbeat/releases)
+
 Welcome to Mcqbeat.
 
 Mcqbeat is based on [Beats](https://github.com/elastic/beats) ship   memcacheq queue stats to elasticsearch.
