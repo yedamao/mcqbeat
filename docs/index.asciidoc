@@ -1,0 +1,5 @@
+= Mcqbeat Docs
+
+Welcome to the Mcqbeat documentation.
+
+
