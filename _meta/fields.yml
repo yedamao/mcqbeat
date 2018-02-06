@@ -2,8 +2,8 @@
   title: mcqbeat
   description:
   fields:
-    - name: counter
-      type: long
+    - name: stats
+      type: object
       required: true
       description: >
-        PLEASE UPDATE DOCUMENTATION
+          The stats of mcq queues

@@ -8,6 +8,7 @@ import (
 	"github.com/elastic/beats/libbeat/common"
 	"github.com/elastic/beats/libbeat/logp"
 
+	"github.com/yedamao/gomemcacheq"
 	"github.com/yedamao/mcqbeat/config"
 )
 
@@ -15,6 +16,12 @@ type Mcqbeat struct {
 	done   chan struct{}
 	config config.Config
 	client beat.Client
+}
+
+type Stat struct {
+	In   int
+	Out  int
+	Stay int
 }
 
 // Creates beater
@@ -41,7 +48,20 @@ func (bt *Mcqbeat) Run(b *beat.Beat) error {
 	}
 
 	ticker := time.NewTicker(bt.config.Period)
-	counter := 1
+
+	mcq, err := memcacheq.New(bt.config.Host)
+	if err != nil {
+		return err
+	}
+
+	if err := mcq.Dial(); err != nil {
+		return err
+	}
+	defer mcq.Close()
+
+	// the previous period queues statuses
+	pre_stats := make(map[string]memcacheq.Stat)
+
 	for {
 		select {
 		case <-bt.done:
@@ -49,16 +69,38 @@ func (bt *Mcqbeat) Run(b *beat.Beat) error {
 		case <-ticker.C:
 		}
 
+		// current period queues statues
+		stats, err := mcq.StatsQueue()
+		if err != nil {
+			return err
+		}
+
+		// to be publishing map
+		queues := common.MapStr{}
+		for _, queue := range *stats {
+			pre_stat, ok := pre_stats[queue.QueueName]
+			pre_stats[queue.QueueName] = queue
+			if !ok {
+				queues.Put(queue.QueueName, Stat{})
+			} else {
+				queues.Put(queue.QueueName, Stat{
+					In:   queue.AllIn - pre_stat.AllIn,
+					Out:  queue.AllOut - pre_stat.AllOut,
+					Stay: queue.AllIn - queue.AllOut,
+				})
+			}
+		}
+
 		event := beat.Event{
 			Timestamp: time.Now(),
 			Fields: common.MapStr{
-				"type":       b.Info.Name,
-				"counter":    counter,
+				"type":  b.Info.Name,
+				"stats": queues,
 			},
 		}
+
 		bt.client.Publish(event)
 		logp.Info("Event sent")
-		counter++
 	}
 }
 

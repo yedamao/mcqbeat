@@ -7,8 +7,10 @@ import "time"
 
 type Config struct {
 	Period time.Duration `config:"period"`
+	Host   string        `config:"host"`
 }
 
 var DefaultConfig = Config{
 	Period: 1 * time.Second,
+	Host:   "localhost:22201",
 }
